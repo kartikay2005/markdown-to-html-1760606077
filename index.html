@@ -16,87 +16,68 @@
             min-height: 100vh;
             background-color: #f4f4f9;
         }
-        #markdown-tabs {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        #markdown-tabs button {
-            padding: 10px 20px;
-            margin: 0 5px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        #markdown-tabs button.active {
-            background-color: #0056b3;
-        }
-        #markdown-output, #markdown-source {
+        #content {
             width: 80%;
             max-width: 800px;
+            background-color: #fff;
             padding: 20px;
-            border: 1px solid #ddd;
-            background-color: white;
-            display: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        #markdown-source-label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
         }
         pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
         }
     </style>
 </head>
 <body>
-    <div id="markdown-tabs">
-        <button id="rendered-tab" class="active">Rendered HTML</button>
-        <button id="source-tab">Markdown Source</button>
+    <div id="content">
+        <div id="markdown-source-label"></div>
+        <div id="markdown-content"></div>
     </div>
-    <div id="markdown-output"></div>
-    <pre id="markdown-source"></pre>
-
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js/lib/languages/javascript.min.js"></script>
     <script>
+        hljs.registerLanguage('javascript', window.hljsLanguages.javascript);
         document.addEventListener('DOMContentLoaded', () => {
-            const renderedTab = document.getElementById('rendered-tab');
-            const sourceTab = document.getElementById('source-tab');
-            const markdownOutput = document.getElementById('markdown-output');
-            const markdownSource = document.getElementById('markdown-source');
+            const urlParams = new URLSearchParams(window.location.search);
+            const markdownUrl = urlParams.get('url');
+            const markdownSourceLabel = document.querySelector("#markdown-source-label");
+            const markdownContent = document.querySelector("#markdown-content");
 
-            function fetchMarkdown() {
-                fetch('assets/input.md')
+            function fetchMarkdown(url) {
+                fetch(url)
                     .then(response => {
                         if (!response.ok) throw new Error('Network response was not ok');
                         return response.text();
                     })
-                    .then(markdown => {
-                        markdownSource.textContent = markdown.trim();
-                        markdownOutput.innerHTML = marked.parse(markdown);
-                        markdownOutput.style.display = 'block';
+                    .then(data => {
+                        markdownContent.innerHTML = marked(data, {
+                            highlight: function(code, lang) {
+                                return hljs.highlightAuto(code).value;
+                            }
+                        });
                     })
                     .catch(error => {
-                        console.error('Error fetching markdown:', error);
-                        markdownOutput.innerHTML = '<p>Error loading content. Please try again later.</p>';
+                        markdownContent.innerHTML = `<p>Error loading markdown: ${error.message}</p>`;
                     });
             }
 
-            function switchTab(event) {
-                if (event.target === renderedTab) {
-                    renderedTab.classList.add('active');
-                    sourceTab.classList.remove('active');
-                    markdownOutput.style.display = 'block';
-                    markdownSource.style.display = 'none';
-                } else if (event.target === sourceTab) {
-                    sourceTab.classList.add('active');
-                    renderedTab.classList.remove('active');
-                    markdownSource.style.display = 'block';
-                    markdownOutput.style.display = 'none';
-                }
+            if (markdownUrl) {
+                markdownSourceLabel.textContent = `Loaded from URL: ${markdownUrl}`;
+                fetchMarkdown(markdownUrl);
+            } else {
+                markdownSourceLabel.textContent = 'Loaded from attachment: assets/input.md';
+                fetchMarkdown('assets/input.md');
             }
-
-            renderedTab.addEventListener('click', switchTab);
-            sourceTab.addEventListener('click', switchTab);
-
-            fetchMarkdown();
         });
     </script>
 </body>
