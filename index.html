@@ -3,48 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to HTML Converter</title>
+    <title>Markdown Viewer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
             background-color: #f4f4f9;
         }
-        #markdown-output {
-            background-color: #fff;
+        #markdown-tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #markdown-tabs button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #markdown-tabs button.active {
+            background-color: #0056b3;
+        }
+        #markdown-output, #markdown-source {
+            width: 80%;
+            max-width: 800px;
             padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            background-color: white;
+            display: none;
         }
         pre {
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
 </head>
 <body>
-    <h1>Markdown to HTML Converter</h1>
-    <div id="markdown-output">Loading...</div>
+    <div id="markdown-tabs">
+        <button id="rendered-tab" class="active">Rendered HTML</button>
+        <button id="source-tab">Markdown Source</button>
+    </div>
+    <div id="markdown-output"></div>
+    <pre id="markdown-source"></pre>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/highlight.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const response = await fetch('assets/input.md');
-                if (!response.ok) throw new Error('Failed to load markdown file');
-                const markdownText = await response.text();
-                const htmlContent = marked.parse(markdownText);
-                document.querySelector('#markdown-output').innerHTML = htmlContent;
-                document.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
-            } catch (error) {
-                document.querySelector('#markdown-output').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        document.addEventListener('DOMContentLoaded', () => {
+            const renderedTab = document.getElementById('rendered-tab');
+            const sourceTab = document.getElementById('source-tab');
+            const markdownOutput = document.getElementById('markdown-output');
+            const markdownSource = document.getElementById('markdown-source');
+
+            function fetchMarkdown() {
+                fetch('assets/input.md')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.text();
+                    })
+                    .then(markdown => {
+                        markdownSource.textContent = markdown.trim();
+                        markdownOutput.innerHTML = marked.parse(markdown);
+                        markdownOutput.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching markdown:', error);
+                        markdownOutput.innerHTML = '<p>Error loading content. Please try again later.</p>';
+                    });
             }
+
+            function switchTab(event) {
+                if (event.target === renderedTab) {
+                    renderedTab.classList.add('active');
+                    sourceTab.classList.remove('active');
+                    markdownOutput.style.display = 'block';
+                    markdownSource.style.display = 'none';
+                } else if (event.target === sourceTab) {
+                    sourceTab.classList.add('active');
+                    renderedTab.classList.remove('active');
+                    markdownSource.style.display = 'block';
+                    markdownOutput.style.display = 'none';
+                }
+            }
+
+            renderedTab.addEventListener('click', switchTab);
+            sourceTab.addEventListener('click', switchTab);
+
+            fetchMarkdown();
         });
     </script>
 </body>
